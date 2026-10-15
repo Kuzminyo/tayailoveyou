@@ -787,7 +787,19 @@ if (!hasThree) {
 
 startBtn.addEventListener("click", () => {
   startBtn.disabled = true;
-  if (audio) audio.play().then(() => setPlaying(true)).catch(() => {});
+  if (audio) {
+    /* the track is trimmed to start right on the music; a short fade avoids a click */
+    audio.volume = 0;
+    audio.play().then(() => {
+      setPlaying(true);
+      const t0 = Date.now();
+      const timer = setInterval(() => {
+        const k = Math.min(1, (Date.now() - t0) / 700);
+        audio.volume = k;
+        if (k >= 1) clearInterval(timer);
+      }, 40);
+    }).catch(() => { audio.volume = 1; });
+  }
   document.getElementById("intro-content").classList.add("leaving");
   warpTarget = reduceMotion ? 3 : 16;
   setTimeout(() => {
