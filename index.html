@@ -749,6 +749,29 @@ musicBtn.addEventListener("click", () => {
   else { audio.pause(); setPlaying(false); }
 });
 
+/* The song plays already on the intro screen. Browsers only allow sound after a touch,
+   so we try right away and, if refused, start on the first touch anywhere on the page.
+   The track is trimmed to begin on the music; a short fade-in avoids a click. */
+let musicStarted = false;
+function startMusic() {
+  if (!audio || musicStarted) return;
+  musicStarted = true;
+  audio.volume = 0;
+  audio.play().then(() => {
+    setPlaying(true);
+    const t0 = Date.now();
+    const timer = setInterval(() => {
+      const k = Math.min(1, (Date.now() - t0) / 700);
+      audio.volume = k;
+      if (k >= 1) clearInterval(timer);
+    }, 40);
+  }).catch(() => { musicStarted = false; audio.volume = 1; });
+}
+["pointerdown", "touchend", "keydown", "click"].forEach(type =>
+  window.addEventListener(type, startMusic, { capture: true, passive: true })
+);
+if (audio) audio.addEventListener("canplaythrough", startMusic, { once: true });
+
 /* =====================================================================
    START
    ===================================================================== */
@@ -787,19 +810,7 @@ if (!hasThree) {
 
 startBtn.addEventListener("click", () => {
   startBtn.disabled = true;
-  if (audio) {
-    /* the track is trimmed to start right on the music; a short fade avoids a click */
-    audio.volume = 0;
-    audio.play().then(() => {
-      setPlaying(true);
-      const t0 = Date.now();
-      const timer = setInterval(() => {
-        const k = Math.min(1, (Date.now() - t0) / 700);
-        audio.volume = k;
-        if (k >= 1) clearInterval(timer);
-      }, 40);
-    }).catch(() => { audio.volume = 1; });
-  }
+  startMusic();
   document.getElementById("intro-content").classList.add("leaving");
   warpTarget = reduceMotion ? 3 : 16;
   setTimeout(() => {
